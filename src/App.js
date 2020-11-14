@@ -1,4 +1,4 @@
-import React, { createRef, useEffect, useState } from "react";
+import React, { createRef, useEffect, useRef, useState } from "react";
 import Category from "./components/category";
 import SearchPanel from "./components/searchPanel";
 import Table from "./components/table"
@@ -14,6 +14,7 @@ const Info = styled.div`
 
 export default function App() {
   const inputRef = createRef();
+  const firstRender = useRef(true);
   const [keyword, setKeyword] = useState('');
   const [{ loading, content }, setState] = useState({
     loading: false,
@@ -21,9 +22,13 @@ export default function App() {
   });
 
 
-  useEffect(() => inputRef.current.focus());
   useEffect(() => {
-    if (keyword) {
+    inputRef.current.focus();
+    firstRender.current = false;
+  });
+
+  useEffect(() => {
+    if (!firstRender.current) {
       const timeOutId = setTimeout(() => {
         makeAnApiCall(keyword)
       }, 700);
@@ -32,17 +37,21 @@ export default function App() {
   }, [keyword]);
 
   const makeAnApiCall = (value) => {
-    fetch(`https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&page=${value}`)
-      .then(resp => resp.json())
-      .then(data => {
-        if (data.error)
-          setState({ loading: false, content: data.error.info });
-        else
-          setState({ loading: true, content: data.parse });
-      })
-      .catch((e) => {
-        setState({ loading: false, content: '' })
-      })
+    if (!value) {
+      setState({ loading: false, content: '' });
+    } else {
+      fetch(`https://en.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&page=${value}`)
+        .then(resp => resp.json())
+        .then(data => {
+          if (data.error)
+            setState({ loading: false, content: data.error.info });
+          else
+            setState({ loading: true, content: data.parse });
+        })
+        .catch((e) => {
+          setState({ loading: false, content: '' })
+        })
+    }
   }
   const handleKeywordChange = (e) => {
     setKeyword(e.target.value);
